@@ -12,6 +12,14 @@ struct ContentView: View {
     
     @StateObject var favourites = Favourites()
     @State private var searchText = ""
+    @State private var sortBy: SortOrder = .defaultOrder
+    @State private var showingConfirmDialog = false
+    
+    enum SortOrder: String {
+        case defaultOrder
+        case alphabeticalOrder
+        case countryOrder
+    }
     
     var body: some View {
         NavigationView {
@@ -47,8 +55,29 @@ struct ContentView: View {
                     }
                 }
             }
+            .confirmationDialog("Sort By:", isPresented: $showingConfirmDialog, titleVisibility: .visible) {
+                Button("Default") {
+                    sortBy = .defaultOrder
+                }
+                
+                Button("Alphabetically") {
+                    sortBy = .alphabeticalOrder
+                }
+                
+                Button("Country") {
+                    sortBy = .countryOrder
+                }
+            }
             .navigationTitle("Resorts")
             .searchable(text: $searchText, prompt: "Search for a resort")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Sort") {
+                        showingConfirmDialog = true
+                    }
+                }
+            }
+            
             
             WelcomeScreen()
         }
@@ -57,10 +86,25 @@ struct ContentView: View {
     }
     
     var filteredResorts: [Resort] {
+        guard !resorts.isEmpty else {
+            return []
+        }
+        
+        var sortedResorts = [Resort]()
+        
+        switch sortBy {
+        case .defaultOrder:
+            sortedResorts = resorts
+        case .alphabeticalOrder:
+            sortedResorts = resorts.sorted(by: { $0.name < $1.name})
+        case .countryOrder:
+            sortedResorts = resorts.sorted(by: { $0.country < $1.country})
+        }
+        
         if searchText.isEmpty {
-            return resorts
+            return sortedResorts
         } else {
-            return resorts.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            return sortedResorts.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
     }
 }
